@@ -2,10 +2,10 @@
 // by Daniel Reeves and Lillian Karabaic
 // ------------------------------------------------------------ (80 chars) ---->
 
-// CHANGEME
-//var YOOG = "d/snooze";  // username/goalname to send data to
 var DISC = 0.36/365.25; // daily discount rate for snoozed mail
-
+var STYLE = 
+  {"font-family":"'Helvetica Neue',Helvetica,Arial,sans-serif", 
+   "margin": "40px"};
 
 // Create a new trigger that calls a function daily at a given time (HH:MM)
 function trig(f, h, m) {
@@ -13,7 +13,7 @@ function trig(f, h, m) {
     .create();
 }
 
-// Show the date and time
+// Show the date and time (not currently used)
 function shdt() {
   var d = new Date();
   var da = new Array("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT");
@@ -38,30 +38,38 @@ function arraysEqual(a, b) {
 
 // Special function that gets run when this is deployed as a web app
 function doGet() {  
-  var app = UiApp.createApplication();
-  var form = app.createFormPanel();
-  var flow = app.createFlowPanel();
-  app.add(app.createHTML(
-    "<div class=\"container\" style=\"font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; margin:40px;\">" + 
-    "<h1>Enter your username/goalname</h1>"
+  var app = UiApp.createApplication().setHeight(200).setWidth(600);
+  var form = app.createFormPanel().setStyleAttributes(STYLE);
+  var flow = app.createFlowPanel().setStyleAttributes(STYLE);
+  //var yoog = ScriptProperties.getProperty("yoog"); //SCHDEL
+  var yoog = PropertiesService.getUserProperties().getProperty("yoog");
+
+  flow.add(app.createHTML(
+    "<h1>Gminder: Send Gmail inbox and snooze counts to Beeminder</h1> " +
+    "<p>Currently sending data to beeminder.com/<b>" + yoog + "</b> " + 
+    "(create an Inbox Fewer goal in Beeminder and enter your username/goalname) " +
+    "</p>"
   ));
-  flow.add(app.createTextBox().setName("yoog"));
-  flow.add(app.createSubmitButton("Submit"));
-  form.add(flow);
-  app.add(form);
-  app.add(app.createHTML("</div>"));
-  return app;
-}
-
-function doPost(eventInfo) {
-  var yoog = eventInfo.parameter.yoog;
-  ScriptProperties.setProperty("yoog", eventInfo.parameter.yoog);
-
-  var app = UiApp.getActiveApplication();
-  app.add(app.createHTML(
-    "<div class=\"container\" style=\"font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; margin:40px;\">" + 
-    "<h1>Your Gmail inbox (and snoozed email) is being minded!</h1> " + 
-    "<h2>What's going on?</h2>" + 
+  var placeholder = 'alice/email';
+  var textbox = app.createTextBox().setValue(placeholder)
+    .setStyleAttribute('color', 'gray').setName("yoog");
+  textbox.addFocusHandler(app.createClientHandler()
+                          .validateMatches(textbox, '^'+placeholder+'$')
+                          .forEventSource().setText('')
+                          .setStyleAttribute('color','black'));
+  textbox.addBlurHandler(app.createClientHandler()
+                         .validateLength(textbox, 0, 0).forEventSource()
+                         .setText(placeholder)
+                         .setStyleAttribute('color','gray'));
+  flow.add(textbox);
+  //flow.add(app.createHTML("&nbsp;"));
+  flow.add(app.createSubmitButton("Mind me!"));
+  flow.add(app.createHTML("<hr><p>Send current counts to Beeminder:</p>"));
+  var button = app.createButton("Refresh!").setId("button");  
+  button.addClickHandler(app.createServerHandler("lily"));
+  flow.add(button);
+  flow.add(app.createHTML(
+    "<hr><h2>What's going on?</h2>" + 
     "<p>" + 
     "Roughly hourly during the day, this script will send the total size " + 
     "of your inbox to " + 
@@ -69,8 +77,22 @@ function doPost(eventInfo) {
     "Also, if you use " +
     "Gmail Snooze (messymatters.com/snooze) then it " + 
     "will count snoozed messages as well." + 
-    "</p>" + 
-    "</div>"));
+    "</p>"));
+  form.add(flow);
+  app.add(form);
+  return app;
+}
+
+function doPost(eventInfo) {
+  var yoog = eventInfo.parameter.yoog;
+  //ScriptProperties.setProperty("yoog", eventInfo.parameter.yoog); //SCHDEL
+  PropertiesService.getUserProperties().setProperty("yoog", 
+                                                    eventInfo.parameter.yoog);
+  var app = UiApp.getActiveApplication();
+  app.add(app.createHTML(
+    "<h1>Your Gmail inbox (and snoozed email) is being minded! " + 
+    "Refresh this page...</h1>"
+  ).setStyleAttributes(STYLE));
 
   //app.add(app.createLabel("Form submitted. The text box's value was '" +
   //     eventInfo.parameter.yoog + "'."));
@@ -152,7 +174,9 @@ function lily() {
   nin = GmailApp.search('in:inbox').length; // number in inbox
   ninu = GmailApp.getInboxUnreadCount();    // number in inbox unread
   ninr = nin-ninu;                          // number in inbox read
-  MailApp.sendEmail("bot@beeminder.com", ScriptProperties.getProperty("yoog"), 
+  MailApp.sendEmail("bot@beeminder.com", 
+                    //ScriptProperties.getProperty("yoog"), //SCHDEL
+                    PropertiesService.getUserProperties().getProperty("yoog"),
                     "^ "+(nin+nps)+
                     " \"auto-entered by Gminder ("+
                       ninu+" unread + "+
