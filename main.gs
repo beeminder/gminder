@@ -41,7 +41,6 @@ function doGet() {
   var app = UiApp.createApplication().setHeight(200).setWidth(600);
   var form = app.createFormPanel().setStyleAttributes(STYLE);
   var flow = app.createFlowPanel().setStyleAttributes(STYLE);
-  //var yoog = ScriptProperties.getProperty("yoog"); //SCHDEL
   var yoog = PropertiesService.getUserProperties().getProperty("yoog");
 
   flow.add(app.createHTML(
@@ -85,7 +84,6 @@ function doGet() {
 
 function doPost(eventInfo) {
   var yoog = eventInfo.parameter.yoog;
-  //ScriptProperties.setProperty("yoog", eventInfo.parameter.yoog); //SCHDEL
   PropertiesService.getUserProperties().setProperty("yoog", 
                                                     eventInfo.parameter.yoog);
   var app = UiApp.getActiveApplication();
@@ -151,10 +149,22 @@ function intlabels() {
 
 // Return the total number of threads for a label l
 function threadCount(l) {
-  tot = 0;
-  var page 
+  var tot = 0;
+  var page;
   do {
     page = l.getThreads(0,100);
+    tot += page.length;
+  } while(page.length==100);
+  return tot;
+}
+
+function inboxCount() {  
+  // This way seems to cap out at 500:
+  // GmailApp.search('in:inbox').length; 
+  var tot = 0;
+  var page;
+  do {
+    page = GmailApp.getInboxThreads(0,100);
     tot += page.length;
   } while(page.length==100);
   return tot;
@@ -170,12 +180,11 @@ function lily() {
     n = threadCount(all[li]);
     ns += n;
     nps += n*Math.exp(-DISC*i);
-  }
-  nin = GmailApp.search('in:inbox').length; // number in inbox
-  ninu = GmailApp.getInboxUnreadCount();    // number in inbox unread
-  ninr = nin-ninu;                          // number in inbox read
+  }  
+  nin  = inboxCount();                   // number in inbox
+  ninu = GmailApp.getInboxUnreadCount(); // number in inbox unread
+  ninr = nin-ninu;                       // number in inbox read
   MailApp.sendEmail("bot@beeminder.com", 
-                    //ScriptProperties.getProperty("yoog"), //SCHDEL
                     PropertiesService.getUserProperties().getProperty("yoog"),
                     "^ "+(nin+nps)+
                     " \"auto-entered by Gminder ("+
