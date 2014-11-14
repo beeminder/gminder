@@ -49,6 +49,7 @@ function doGet() {
     "(create an Inbox Fewer goal in Beeminder and enter your username/goalname) " +
     "</p>"
   ));
+
   var placeholder = 'alice/email';
   var textbox = app.createTextBox().setValue(placeholder)
     .setStyleAttribute('color', 'gray').setName("yoog");
@@ -61,12 +62,18 @@ function doGet() {
                          .setText(placeholder)
                          .setStyleAttribute('color','gray'));
   flow.add(textbox);
-  //flow.add(app.createHTML("&nbsp;"));
   flow.add(app.createSubmitButton("Mind me!"));
+  
   flow.add(app.createHTML("<hr><p>Send current counts to Beeminder:</p>"));
-  var button = app.createButton("Refresh!").setId("button");  
-  button.addClickHandler(app.createServerHandler("lily"));
-  flow.add(button);
+  var but1 = app.createButton("Refresh!").setId("but1");  
+  but1.addClickHandler(app.createServerHandler("mindme"));
+  flow.add(but1);
+  
+  flow.add(app.createHTML("<hr><p>Make it all stop:</p>"));
+  var but2 = app.createButton("Abort Everything!").setId("but2");
+  but2.addClickHandler(app.createServerHandler("untrigger"));
+  flow.add(but2);
+  
   flow.add(app.createHTML(
     "<hr><h2>What's going on?</h2>" + 
     "<p>" + 
@@ -77,9 +84,17 @@ function doGet() {
     "Gmail Snooze (messymatters.com/snooze) then it " + 
     "will count snoozed messages as well." + 
     "</p>"));
+
   form.add(flow);
   app.add(form);
   return app;
+}
+
+// Delete all triggers for this project for this user
+function untrigger() {
+  var t = ScriptApp.getProjectTriggers();
+  var n = t.length;
+  for(var i=0; i < n; i++) { ScriptApp.deleteTrigger(t[i]); }
 }
 
 function doPost(eventInfo) {
@@ -91,44 +106,33 @@ function doPost(eventInfo) {
     "<h1>Your Gmail inbox (and snoozed email) is being minded! " + 
     "Refresh this page...</h1>"
   ).setStyleAttributes(STYLE));
-
-  //app.add(app.createLabel("Form submitted. The text box's value was '" +
-  //     eventInfo.parameter.yoog + "'."));
   
-  var t = ScriptApp.getProjectTriggers(); // was getScriptTriggers
+  var t = ScriptApp.getProjectTriggers();
   if(arraysEqual(t.map(function(x){ return x.getHandlerFunction(); }), 
-                 ["lily"])) {
+                 ["mindme"])) {
     Logger.log("Triggers already set up");
-  } else { // delete all triggers from last time we ran this script
-    var n = t.length;
-    for(var i=0; i < n; i++) {
-      Logger.log("Deleting trigger: id "+t[i].getUniqueId()
-                       +", source "     +t[i].getTriggerSourceId()
-                       +", func "       +t[i].getHandlerFunction()
-                       +", eventtype "  +t[i].getEventType());
-      //if(t[i].getTriggerSource() == ScriptApp.EventType.CLOCK) {}
-      ScriptApp.deleteTrigger(t[i]);
-    }
-    //ScriptApp.newTrigger("lily").timeBased().everyHours(1).create();
-    trig("lily", 09,00);
-    trig("lily", 10,00);
-    trig("lily", 11,00);
-    trig("lily", 12,00);
-    trig("lily", 13,00);
-    trig("lily", 14,00);
-    trig("lily", 15,00);
-    trig("lily", 16,00);
-    trig("lily", 17,00);
-    trig("lily", 18,00);
-    trig("lily", 19,00);
-    trig("lily", 20,00);
-    trig("lily", 21,00);
-    trig("lily", 22,00);
-    trig("lily", 23,00);
-    trig("lily", 00,00);
-    trig("lily", 01,00);
-    trig("lily", 02,00);
-    trig("lily", 02,59);
+  } else {
+    untrigger();
+    //ScriptApp.newTrigger("mindme").timeBased().everyHours(1).create();
+    trig("mindme", 09,00);
+    trig("mindme", 10,00);
+    trig("mindme", 11,00);
+    trig("mindme", 12,00);
+    trig("mindme", 13,00);
+    trig("mindme", 14,00);
+    trig("mindme", 15,00);
+    trig("mindme", 16,00);
+    trig("mindme", 17,00);
+    trig("mindme", 18,00);
+    trig("mindme", 19,00);
+    trig("mindme", 20,00);
+    trig("mindme", 21,00);
+    trig("mindme", 22,00);
+    trig("mindme", 23,00);
+    trig("mindme", 00,00);
+    trig("mindme", 01,00);
+    trig("mindme", 02,00);
+    trig("mindme", 02,59);
   }
   
   //return HtmlService.createTemplateFromFile('allset').evaluate();
@@ -159,8 +163,7 @@ function threadCount(l) {
 }
 
 function inboxCount() {  
-  // This way seems to cap out at 500:
-  // GmailApp.search('in:inbox').length; 
+  // This way seems to cap out at 500: GmailApp.search('in:inbox').length; 
   var tot = 0;
   var page;
   do {
@@ -170,7 +173,7 @@ function inboxCount() {
   return tot;
 }
 
-function lily() {
+function mindme() {
   var all = intlabels();
   var ns = 0; // number snoozed
   var nps = 0; // like NPV but net present number snoozed
