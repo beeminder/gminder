@@ -156,7 +156,8 @@ function threadCount(l) {
   var tot = 0;
   var page;
   do {
-    page = l.getThreads(0,100);
+    page = l.getThreads(tot,100);
+    Utilities.sleep(1000); // prevents getting killed by google?
     tot += page.length;
   } while(page.length==100);
   return tot;
@@ -167,7 +168,8 @@ function inboxCount() {
   var tot = 0;
   var page;
   do {
-    page = GmailApp.getInboxThreads(0,100);
+    page = GmailApp.getInboxThreads(tot,100);
+    Utilities.sleep(1000); // prevents getting killed by google?
     tot += page.length;
   } while(page.length==100);
   return tot;
